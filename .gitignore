@@ -220,3 +220,11 @@ __marimo__/
 # data files
 redteam.csv
 data_formatted.csv
+dns.csv
+auth.csv
+
+#vscode
+venv/
+data/
+__pycache__/
+*.pyc
