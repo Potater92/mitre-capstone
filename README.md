@@ -95,18 +95,45 @@ For this user, the selected window contained:
 - 0 failed logins
 - 7 known attack events
 
+### Multi-User Analysis
 
+The authentication analysis was expanded from only `U748@DOM1` to all users with known red-team events in the selected time window.
+
+The users included are:
+
+- `U620@DOM1`
+- `U748@DOM1`
+- `U6115@DOM1`
+- `U636@DOM1`
+
+Together, these users contain all 10 known red-team events in the selected authentication window.
+
+The expanded analysis uses more general behavioral features so the system does not depend on a specific user or computer. These include:
+
+- New source computer
+- New destination computer
+- Source computer frequency
+- Destination computer frequency
+- NTLM usage
+- Number of authentication events within five minutes
+- Number of unique destination computers within five minutes
+
+All 10 known red-team events used NTLM. However, NTLM also appeared during normal activity, so it cannot be used alone to identify an attack.
+
+Other features varied between users. For example, some attacks involved new destinations while others did not. This shows that no single feature consistently identifies every attack and supports combining multiple behavioral signals when calculating a cyberattack confidence score.
 
 ### Behavioral Features
 
-Several basic behavioral features were created to compare attack and normal activity:
+Several behavioral features were first created for the U748 analysis and were later expanded into more general features that could be applied across multiple users:
 
-- Whether the source computer was `C17693`
-- Number of unique destinations accessed within five minutes
-- Whether the destination had been seen previously
-- Authentication type
+- New source computer
+- New destination computer
 - Source computer frequency
 - Destination computer frequency
+- Authentication type
+- NTLM usage
+- Number of authentication events within five minutes
+- Number of unique destinations accessed within five minutes
 
 The `C17693` feature was useful for investigating this specific attack window because all seven known U748 attacks originated from that computer. However, this would not be a good final machine learning feature by itself because the model could simply memorize that computer instead of learning more general attack behavior.
 
@@ -136,7 +163,9 @@ Some normal events still received high scores and some known attacks received lo
 
 ### Next Steps for the LANL Analysis
 
-The next step is to correlate authentication events with other LANL telemetry sources, especially:
+The authentication analysis has now been expanded across multiple attacked users. The next goal is to expand the amount and types of telemetry being analyzed.
+
+This includes correlating authentication events with other LANL telemetry sources, especially:
 
 - Process activity
 - DNS activity
@@ -220,21 +249,23 @@ If time allows, Apache CALDERA may be used to simulate attacks against a virtual
 ```text
 mitre-capstone/
 ├── analysis/
-│   ├── analyze_lanl.py
-│   ├── compare_behavior.py
-│   ├── feature_analysis.py
-│   └── risk_score.py
+│   ├── authentication/
+│   │   ├── analyze_lanl.py
+│   │   ├── compare_behavior.py
+│   │   ├── feature_analysis.py
+│   │   └── risk_score.py
+│   │
+│   ├── dns/
+│   │
+│   └── multi_user_analysis.py
 │
 ├── data/
-│   └── redteam.txt
 │
 ├── output/
+│   ├── multi_user_features.csv
 │   ├── u748_features.csv
 │   └── u748_risk_scores.csv
 │
-├── docs/
-├── notebooks/
-├── src/
 ├── tests/
 ├── .gitignore
 ├── README.md
@@ -243,23 +274,26 @@ mitre-capstone/
 
 ## Current Analysis Files
 
-**`analysis/analyze_lanl.py`**  
-Loads the authentication and red-team data, matches known red-team activity to authentication events, and labels known attacks.
+**`analysis/authentication/analyze_lanl.py`**  
+Loads the authentication and red-team data, matches known red-team activity to authentication events, and analyzes U748 authentication activity.
 
-**`analysis/feature_analysis.py`**  
+**`analysis/authentication/feature_analysis.py`**  
 Creates behavioral features for the U748 authentication activity and saves the results to `u748_features.csv`.
 
-**`analysis/compare_behavior.py`**  
+**`analysis/authentication/compare_behavior.py`**  
 Compares normal and known attack activity to identify behavioral differences.
 
-**`analysis/risk_score.py`**  
+**`analysis/authentication/risk_score.py`**  
 Creates a basic explainable risk score using several behavioral indicators.
 
-**`data/redteam.txt`**  
-Contains the known LANL red-team authentication events used as ground truth.
+**`analysis/multi_user_analysis.py`**  
+Expands the authentication analysis to all users with known red-team activity in the selected time window and creates more general behavioral features.
 
 **`output/u748_features.csv`**  
 Contains the behavioral features created for the U748 analysis.
 
 **`output/u748_risk_scores.csv`**  
 Contains the calculated risk scores for the analyzed U748 events.
+
+**`output/multi_user_features.csv`**  
+Contains the behavioral features for all users with known red-team events in the selected authentication window.
