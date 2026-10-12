@@ -33,7 +33,7 @@ The project is currently divided into five main areas:
    - Understand the provided telemetry data
    - Clean and organize the data
    - Prepare the data for analysis
-   Link to data source: https://lanl.ma.ic.ac.uk/data/cyber1/
+   - Link to data source: https://lanl.ma.ic.ac.uk/data/cyber1/
 
 2. **Analysis and Detection**
    - Analyze telemetry data
@@ -63,7 +63,7 @@ The LANL dataset includes authentication, process, DNS, network-flow, and red-te
 
 The red-team data gives us known malicious activity that can be used as ground truth. This allows us to compare confirmed attack activity with normal authentication behavior.
 
-Because the full authentication dataset is very large, a smaller time window was extracted around the first known red-team attacks. The selected authentication window contains 1,248,709 events and 10 known red-team events.
+Because the full authentication dataset is very large, smaller authentication windows are being used during development. The current expanded window covers `150000` to `230000` seconds and contains 23 known red-team events.
 
 ### Current Analysis Pipeline
 
@@ -87,7 +87,7 @@ MITRE ATT&CK mapping and interpretation
 
 The first analysis focused on the user `U748@DOM1` because the account appeared in several known red-team events.
 
-For this user, the selected window contained:
+For this user, the original selected window contained:
 
 - 224 authentication events
 - 30 unique source computers
@@ -97,18 +97,19 @@ For this user, the selected window contained:
 
 ### Multi-User Analysis
 
-The authentication analysis was expanded from only `U748@DOM1` to all users with known red-team events in the selected time window.
+The authentication analysis was expanded to a larger time window from `150000` to `230000`.
 
-The users included are:
+The larger analysis includes 23 known red-team events across five attacked users:
 
 - `U620@DOM1`
 - `U748@DOM1`
 - `U6115@DOM1`
 - `U636@DOM1`
+- `U1723@DOM1`
 
-Together, these users contain all 10 known red-team events in the selected authentication window.
+The analysis compares known attack activity with normal authentication behavior for each user.
 
-The expanded analysis uses more general behavioral features so the system does not depend on a specific user or computer. These include:
+The behavioral features include:
 
 - New source computer
 - New destination computer
@@ -118,9 +119,11 @@ The expanded analysis uses more general behavioral features so the system does n
 - Number of authentication events within five minutes
 - Number of unique destination computers within five minutes
 
-All 10 known red-team events used NTLM. However, NTLM also appeared during normal activity, so it cannot be used alone to identify an attack.
+All 23 known red-team events in the larger window used NTLM. However, NTLM also appeared in normal activity, so it cannot be used alone to identify an attack.
 
-Other features varied between users. For example, some attacks involved new destinations while others did not. This shows that no single feature consistently identifies every attack and supports combining multiple behavioral signals when calculating a cyberattack confidence score.
+Other features varied between users. Some attacks involved new source or destination computers while others did not. Attack activity also often involved source or destination computers that were used less frequently than during normal activity.
+
+The larger sample continues to show that no single feature consistently identifies every attack. This supports combining multiple behavioral indicators when calculating a cyberattack confidence score.
 
 ### Behavioral Features
 
@@ -135,11 +138,11 @@ Several behavioral features were first created for the U748 analysis and were la
 - Number of authentication events within five minutes
 - Number of unique destinations accessed within five minutes
 
-The `C17693` feature was useful for investigating this specific attack window because all seven known U748 attacks originated from that computer. However, this would not be a good final machine learning feature by itself because the model could simply memorize that computer instead of learning more general attack behavior.
+The `C17693` feature was useful for investigating the original attack window because all seven known U748 attacks originated from that computer. However, this would not be a good final machine learning feature by itself because the model could simply memorize that computer instead of learning more general attack behavior.
 
-The feature analysis showed that a new destination may be a useful signal. In the current sample, 57.14% of known attacks involved a new destination compared with 12.44% of normal events.
+The feature analysis showed that a new destination may be a useful signal, but it is not consistent across every attacked user.
 
-All seven known U748 attacks in this window also used NTLM. However, NTLM also appeared in normal activity, so it cannot be treated as an attack by itself.
+NTLM appeared in all known red-team events in the larger window, but it also appeared during normal activity. This means NTLM is useful as supporting evidence but cannot be treated as an attack by itself.
 
 ### Basic Risk Score
 
@@ -163,9 +166,9 @@ Some normal events still received high scores and some known attacks received lo
 
 ### Next Steps for the LANL Analysis
 
-The authentication analysis has now been expanded across multiple attacked users. The next goal is to expand the amount and types of telemetry being analyzed.
+The authentication analysis has now been expanded across multiple attacked users and a larger time window.
 
-This includes correlating authentication events with other LANL telemetry sources, especially:
+The next goal is to improve the confidence scoring and begin correlating authentication events with other LANL telemetry sources, especially:
 
 - Process activity
 - DNS activity
@@ -256,6 +259,7 @@ mitre-capstone/
 │   │   └── risk_score.py
 │   │
 │   ├── dns/
+│   │   └── profile_dns.py
 │   │
 │   └── multi_user_analysis.py
 │
@@ -263,6 +267,7 @@ mitre-capstone/
 │
 ├── output/
 │   ├── multi_user_features.csv
+│   ├── multi_user_features_large.csv
 │   ├── u748_features.csv
 │   └── u748_risk_scores.csv
 │
@@ -289,6 +294,9 @@ Creates a basic explainable risk score using several behavioral indicators.
 **`analysis/multi_user_analysis.py`**  
 Expands the authentication analysis to all users with known red-team activity in the selected time window and creates more general behavioral features.
 
+**`analysis/dns/profile_dns.py`**  
+Profiles DNS telemetry for use in the broader multi-source telemetry analysis.
+
 **`output/u748_features.csv`**  
 Contains the behavioral features created for the U748 analysis.
 
@@ -296,4 +304,8 @@ Contains the behavioral features created for the U748 analysis.
 Contains the calculated risk scores for the analyzed U748 events.
 
 **`output/multi_user_features.csv`**  
-Contains the behavioral features for all users with known red-team events in the selected authentication window.
+Contains the behavioral features for all users with known red-team events in the original selected authentication window.
+
+**`output/multi_user_features_large.csv`**  
+Contains the behavioral features generated from the larger `150000–230000` authentication window, including 23 known red-team events across five attacked users.
+```
