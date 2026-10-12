@@ -29,12 +29,12 @@ redteam_columns = [
 # -----------------------------
 
 auth = pd.read_csv(
-    "auth_attack_window.txt",
+    "../auth_attack_window_large.txt",
     names=auth_columns
 )
 
 redteam = pd.read_csv(
-    "redteam.txt",
+    "../redteam.txt",
     names=redteam_columns
 )
 
@@ -47,13 +47,25 @@ redteam_window = redteam[
     (redteam["time"] <= end_time)
 ].copy()
 
+# -----------------------------
 # Label attacks
+# -----------------------------
 
 redteam_match = redteam_window.rename(
     columns={"user": "source_user"}
 )
 
 redteam_match["attack"] = 1
+
+# Remove duplicate red-team rows before merging
+redteam_match = redteam_match.drop_duplicates(
+    subset=[
+        "time",
+        "source_user",
+        "source_computer",
+        "destination_computer"
+    ]
+)
 
 auth = auth.merge(
     redteam_match[
@@ -76,7 +88,9 @@ auth = auth.merge(
 
 auth["attack"] = auth["attack"].fillna(0).astype(int)
 
-# Find every attacked user
+# -----------------------------
+# Find attacked users
+# -----------------------------
 
 attack_users = auth.loc[
     auth["attack"] == 1,
@@ -88,7 +102,7 @@ print("\nUsers with known attacks:")
 for user in attack_users:
     print(user)
 
-# Only analyze users that have at least one known attack
+# Only analyze users with at least one known attack
 df = auth[
     auth["source_user"].isin(attack_users)
 ].copy()
@@ -97,7 +111,9 @@ df = df.sort_values(
     ["source_user", "time"]
 ).reset_index(drop=True)
 
-# General behavioral features
+# -----------------------------
+# Behavioral features
+# -----------------------------
 
 # Has this user used this destination before?
 df["new_destination"] = (
@@ -109,7 +125,7 @@ df["new_destination"] = (
     )
 ).astype(int)
 
-# Has this user used this source before?
+# Has this user used this source computer before?
 df["new_source"] = (
     ~df.duplicated(
         subset=[
@@ -146,7 +162,9 @@ df["uses_ntlm"] = (
     df["authentication_type"] == "NTLM"
 ).astype(int)
 
+# -----------------------------
 # 5-minute activity features
+# -----------------------------
 
 df["auth_events_5min"] = 0
 df["unique_destinations_5min"] = 0
@@ -192,18 +210,34 @@ for user, group in df.groupby("source_user"):
             "unique_destinations_5min"
         ] = len(destination_counts)
 
-# Save expanded data
+# -----------------------------
+# Save expanded feature data
+# -----------------------------
 
 df.to_csv(
-    "multi_user_features.csv",
+    "output/multi_user_features_large.csv",
     index=False
 )
 
-# Summary by user
+# -----------------------------
+# Summary
+# -----------------------------
 
 print("\n=================================")
 print("MULTI-USER ATTACK ANALYSIS")
 print("=================================")
+
+print("\nTime range:")
+print(start_time, "to", end_time)
+
+print("\nTotal analyzed events:")
+print(len(df))
+
+print("\nTotal known attacks:")
+print(df["attack"].sum())
+
+print("\nTotal attacked users:")
+print(len(attack_users))
 
 for user in attack_users:
 
@@ -237,12 +271,24 @@ for user in attack_users:
         user_df["destination_computer"].nunique()
     )
 
+    # -----------------------------
+    # Attack behavior
+    # -----------------------------
+
     if len(attacks) > 0:
 
         print(
             "Attack new destination %:",
             round(
                 attacks["new_destination"].mean() * 100,
+                2
+            )
+        )
+
+        print(
+            "Attack new source %:",
+            round(
+                attacks["new_source"].mean() * 100,
                 2
             )
         )
@@ -258,6 +304,36 @@ for user in attack_users:
         )
 
         print(
+            "Attack average auth events / 5 min:",
+            round(
+                attacks[
+                    "auth_events_5min"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
+            "Attack average source frequency:",
+            round(
+                attacks[
+                    "source_frequency"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
+            "Attack average destination frequency:",
+            round(
+                attacks[
+                    "destination_frequency"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
             "Attack NTLM %:",
             round(
                 attacks["uses_ntlm"].mean() * 100,
@@ -265,12 +341,24 @@ for user in attack_users:
             )
         )
 
+    # -----------------------------
+    # Normal behavior
+    # -----------------------------
+
     if len(normal) > 0:
 
         print(
             "Normal new destination %:",
             round(
                 normal["new_destination"].mean() * 100,
+                2
+            )
+        )
+
+        print(
+            "Normal new source %:",
+            round(
+                normal["new_source"].mean() * 100,
                 2
             )
         )
@@ -286,6 +374,36 @@ for user in attack_users:
         )
 
         print(
+            "Normal average auth events / 5 min:",
+            round(
+                normal[
+                    "auth_events_5min"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
+            "Normal average source frequency:",
+            round(
+                normal[
+                    "source_frequency"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
+            "Normal average destination frequency:",
+            round(
+                normal[
+                    "destination_frequency"
+                ].mean(),
+                2
+            )
+        )
+
+        print(
             "Normal NTLM %:",
             round(
                 normal["uses_ntlm"].mean() * 100,
@@ -295,5 +413,5 @@ for user in attack_users:
 
 print(
     "\nSaved expanded feature data to "
-    "multi_user_features.csv"
+    "output/multi_user_features_large.csv"
 )
