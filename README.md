@@ -65,6 +65,71 @@ The red-team data gives us known malicious activity that can be used as ground t
 
 Because the full authentication dataset is very large, smaller authentication windows are being used during development. The current expanded window covers `150000` to `230000` seconds and contains 23 known red-team events.
 
+### Recreating the Large Authentication Window
+
+The expanded authentication window used for the multi-user analysis is not stored in the repository because the file is approximately 954 MB.
+
+#### Windows PowerShell
+
+Open PowerShell.
+
+Go to the folder where you want to save the LANL files:
+
+```powershell
+cd $HOME\Desktop\mitre-lanl
+```
+
+Download part of the compressed LANL authentication dataset:
+
+```powershell
+curl.exe -L -H "Range: bytes=0-1200000000" https://lanl.ma.ic.ac.uk/data/cyber1/auth.txt.gz -o auth_partial.gz
+```
+
+Decompress the file:
+
+```powershell
+gzip -dc auth_partial.gz > auth_partial.txt
+```
+
+Filter the authentication data to timestamps `150000` through `230000`:
+
+```powershell
+Get-Content auth_partial.txt | Where-Object {
+    $time = [int](($_ -split ',')[0])
+    $time -ge 150000 -and $time -le 230000
+} | Set-Content auth_attack_window_large.txt
+```
+
+Check that the file was created:
+
+```powershell
+Get-Item auth_attack_window_large.txt
+```
+
+Check the last few rows:
+
+```powershell
+Get-Content auth_attack_window_large.txt -Tail 3
+```
+
+The final rows should have timestamps around:
+
+```text
+230000
+```
+
+The generated file is used by:
+
+```text
+analysis/multi_user_analysis.py
+```
+
+The analysis also requires:
+
+```text
+redteam.txt
+```
+
 ### Current Analysis Pipeline
 
 ```text
