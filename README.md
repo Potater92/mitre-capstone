@@ -130,6 +130,21 @@ The analysis also requires:
 redteam.txt
 ```
 
+## How to Use
+
+1. Clone the repo and create a virtual environment:
+   python -m venv venv
+
+   .\venv\Scripts\Activate.ps1
+
+   pip install -r requirements.txt
+2. Recreate the data window (see "Recreating the Large Authentication Window").
+3. Download redteam.txt from https://lanl.ma.ic.ac.uk/data/cyber1/ and place it in data/.
+4. Run the analysis:
+   python analysis/multi_user_analysis.py
+5. Run tests:
+   pytest
+
 ### Current Analysis Pipeline
 
 ```text
