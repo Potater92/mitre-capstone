@@ -145,6 +145,29 @@ redteam.txt
 5. Run tests:
    pytest
 
+## Release notes
+
+### What is working in this submission
+- Authentication analysis of the LANL dataset using red-team events as ground truth
+- Per-user behavioral feature extraction (new source/destination, frequency,
+  NTLM usage, 5-minute activity counts), generalized across all attacked users
+- Multi-user analysis over the 150000–230000 window (23 red-team events, 5 users)
+- Basic explainable risk score (avg normal 9.95 vs. avg attack 40.0)
+- DNS profiling script
+- Output CSVs in /output; tests in /tests
+
+### Not yet implemented (differs from Milestone 3 plan)
+- ML model (PyTorch) for detection/classification: currently rule-based scoring
+- MITRE ATT&CK / ATLAS mapping in code: currently interpretation only
+- System functionality confidence score
+- Dashboard / frontend; visualizations are limited
+- Correlation with process, DNS, and network-flow data
+
+### Known limitations
+- Authentication data alone doesn't reliably separate attacks (some normal events
+  score high, some attacks score low)
+- The 954 MB data window is not in the repo and must be regenerated
+
 ### Current Analysis Pipeline
 
 ```text
