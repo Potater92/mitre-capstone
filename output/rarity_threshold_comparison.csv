@@ -1,0 +1,9 @@
+threshold,known_attacks_detected,total_known_attacks,other_events_flagged,total_alerts,recall_percent
+1,3,23,27,30,13.04
+2,3,23,93,96,13.04
+3,7,23,132,139,30.43
+5,10,23,238,248,43.48
+10,15,23,456,471,65.22
+15,16,23,640,656,69.57
+20,20,23,837,857,86.96
+25,23,23,1016,1039,100.0

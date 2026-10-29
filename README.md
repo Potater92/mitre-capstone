@@ -386,29 +386,133 @@ mitre-capstone/
 Loads the authentication and red-team data, matches known red-team activity to authentication events, and analyzes U748 authentication activity.
 
 **`analysis/authentication/feature_analysis.py`**  
-Creates behavioral features for the U748 authentication activity and saves the results to `u748_features.csv`.
+Creates behavioral features for U748 authentication activity and saves the results to `u748_features.csv`.
 
 **`analysis/authentication/compare_behavior.py`**  
-Compares normal and known attack activity to identify behavioral differences.
+Compares normal authentication activity with known attack activity to identify behavioral differences.
 
 **`analysis/authentication/risk_score.py`**  
-Creates a basic explainable risk score using several behavioral indicators.
+Calculates a basic explainable risk score using multiple behavioral indicators.
 
 **`analysis/multi_user_analysis.py`**  
-Expands the authentication analysis to all users with known red-team activity in the selected time window and creates more general behavioral features.
+Expands the authentication analysis to all users with known red-team activity in the selected time window. Calculates behavioral features for each user.
 
 **`analysis/dns/profile_dns.py`**  
-Profiles DNS telemetry for use in the broader multi-source telemetry analysis.
+Profiles DNS telemetry for future integration with authentication and other system activity.
+
+**`analysis/authentication/sigma_detection.py`**  
+Tests three experimental detection rules: unusual destinations, multiple destinations within five minutes, and authentication bursts. Compares rule matches with known red-team events.
+
+**`analysis/authentication/rarity_threshold_analysis.py`**  
+Tests source and destination rarity using previous authentication events. Compares different frequency thresholds to determine how many known attacks are detected and how many additional events are flagged.
+
+## Current Output Files
 
 **`output/u748_features.csv`**  
-Contains the behavioral features created for the U748 analysis.
+Contains the behavioral features generated for U748 authentication activity.
 
 **`output/u748_risk_scores.csv`**  
-Contains the calculated risk scores for the analyzed U748 events.
+Contains the risk scores calculated for U748 authentication events.
 
 **`output/multi_user_features.csv`**  
-Contains the behavioral features for all users with known red-team events in the original selected authentication window.
+Contains behavioral features for users with known red-team events in the original selected authentication window.
 
 **`output/multi_user_features_large.csv`**  
-Contains the behavioral features generated from the larger `150000–230000` authentication window, including 23 known red-team events across five attacked users.
+Contains behavioral features from the expanded authentication window covering timestamps 150000–230000, including 23 known red-team events across five attacked users.
+
+**`output/sigma_detection_results.csv`**  
+Contains authentication events with the results of each experimental detection rule.
+
+**`output/sigma_detection_summary.csv`**  
+Summarizes the number of alerts, known attacks detected, missed attacks, and detection performance for each rule.
+
+**`output/rarity_threshold_comparison.csv`**  
+Contains the results of testing eight different source and destination rarity thresholds.
+
+## Experimental Authentication Detection
+
+The authentication analysis was expanded to test additional detection rules inspired by the Sigma framework.
+
+The SigmaHQ repository was downloaded, and PySigma 2.0.1 was installed to support future rule integration.
+
+The current detection scripts use custom behavioral rules. Official SigmaHQ detection rules have not yet been executed against the LANL dataset.
+
+### Initial Detection Results
+
+The initial experiments analyzed 3,811 authentication events, including 23 known red-team events.
+
+Three detection rules were tested:
+
+- **Unusual destination:** Identifies a newly observed destination with low destination frequency.
+- **Multiple destinations:** Identifies activity involving at least five unique destination computers within five minutes.
+- **Authentication burst:** Identifies at least ten authentication events within five minutes.
+
+The combined rules detected 15 of the 23 known attacks, or 65.22%. However, they generated 2,678 total alerts.
+
+These results suggested that authentication volume alone was not a reliable way to distinguish known attacks from other activity.
+
+### Rarity-Based Detection
+
+Additional analysis showed that known red-team events generally involved source and destination computers with lower overall usage frequencies.
+
+New detection conditions were tested using previous observations rather than total frequency counts from the entire dataset. This reduced the use of future information when evaluating an event.
+
+Eight rarity thresholds were compared.
+
+| Threshold | Known Attacks Detected | Other Events Flagged | Recall |
+|---|---|---|---|
+| 1 | 3/23 | 27 | 13.04% |
+| 2 | 3/23 | 93 | 13.04% |
+| 3 | 7/23 | 132 | 30.43% |
+| 5 | 10/23 | 238 | 43.48% |
+| 10 | 15/23 | 456 | 65.22% |
+| 15 | 16/23 | 640 | 69.57% |
+| 20 | 20/23 | 837 | 86.96% |
+| 25 | 23/23 | 1,016 | 100.00% |
+
+A threshold of 20 detected 20 of the 23 known attacks while flagging 837 other events.
+
+A threshold of 25 detected all 23 known attacks but generated 1,016 alerts from events without known red-team labels.
+
+The results show a tradeoff between detecting known attacks and reducing the number of alerts.
+
+### Running the Detection Scripts
+
+From the repository root, activate the Python virtual environment and install the required dependencies.
+
+The experiments use the existing `output/multi_user_features_large.csv` file.
+
+Run the initial detection analysis:
+
+```bash
+python analysis/authentication/sigma_detection.py
 ```
+
+Run the rarity threshold comparison:
+
+```bash
+python analysis/authentication/rarity_threshold_analysis.py
+```
+
+Both scripts save their results to the `output` directory.
+
+### Limitations
+
+- The experiments were conducted using a limited authentication window containing 23 known red-team events.
+- Results have not been validated using an independent dataset.
+- Events without red-team labels are not necessarily harmless.
+- Rarity counts begin at the start of the selected analysis window.
+- Events with identical timestamps are evaluated in their existing row order.
+- The current analysis focuses only on users associated with known red-team activity.
+- Detection thresholds are experimental and require further testing.
+- The scripts do not yet execute official SigmaHQ detection rules.
+
+### Next Steps
+
+- Test detection performance using separate training and evaluation windows.
+- Identify SigmaHQ authentication rules compatible with LANL data.
+- Use PySigma to parse and adapt supported detection rules.
+- Improve detection accuracy while reducing unnecessary alerts.
+- Combine authentication results with DNS, process, and network-flow activity.
+- Map supported detections to MITRE ATT&CK techniques.
+- Integrate detection results into the project's confidence scoring and visualization system.
