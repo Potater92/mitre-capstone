@@ -1,0 +1,52 @@
+# Custom Sigma-style rules for the LANL authentication data.
+# Field names (User, DstComputer, ...) are our own schema; FIELD_MAP in
+# detect_fanout.py maps them to the Parquet column names.
+# Two YAML documents: a base rule (per-event match) and a correlation rule
+# (counts distinct destinations per user in a time window).
+title: Network Logon Success (Human Accounts)
+name: lanl_network_logon_success
+status: experimental
+description: Successful network logons by non-machine, non-anonymous accounts.
+logsource:
+  product: lanl
+  category: authentication
+detection:
+  selection:
+    LogonType: Network
+    Orientation: LogOn
+    Outcome: Success
+  filter_machine_and_anonymous:
+    User|startswith:
+      - C            # computer accounts, e.g. C123$@DOM1
+      - ANONYMOUS    # ANONYMOUS LOGON@...
+  filter_known_scanners:
+      # Identified from BEHAVIOR (same 95 hosts in every 5-minute window all
+      # day), not from redteam.txt. Add other automated accounts the same way.
+      User:
+        - U66@DOM1
+  condition: selection and not filter_machine_and_anonymous and not filter_known_scanners
+level: informational
+---
+title: One User Logging Into Many Hosts Quickly
+name: lanl_user_remote_services
+status: experimental
+description: >
+  A single account makes successful network logons to many distinct
+  destination computers within a short window. Candidate lateral movement
+  using valid credentials.
+correlation:
+  type: value_count
+  rules:
+    - lanl_network_logon_success
+  group-by:
+    - User
+  timespan: 5m
+  condition:
+    gte: 8            # a guess: tune on the TRAINING period only
+    field: DstComputer
+tags:
+  - attack.lateral_movement
+  - attack.t1021
+level: medium
+falsepositives:
+  - Admin accounts, vulnerability scanners, and software deployment tools

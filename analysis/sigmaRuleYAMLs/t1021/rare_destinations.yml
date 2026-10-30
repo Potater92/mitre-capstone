@@ -1,0 +1,20 @@
+title: Rarely Seen Destination
+name: lanl_rare_destination
+status: experimental
+logsource:
+  product: lanl
+  category: authentication
+detection:
+  selection:
+    LogonType: Network
+    Orientation: LogOn
+    Outcome: Success
+    PriorPairCount|lte: 2        # new pair, or seen at most twice before
+  filter_machine_and_anonymous:
+    User|startswith:
+      - C
+      - ANONYMOUS
+  condition: selection and not filter_machine_and_anonymous
+tags:
+  - attack.lateral_movement
+  - attack.t1021
