@@ -1,208 +1,112 @@
+
 # MITRE Capstone
 
 ## Project Overview
 
-This project focuses on creating a machine learning system that analyzes system telemetry data and determines:
+Our project focuses on using system telemetry data to identify possible cyberattacks and system disruptions. We want to build a machine learning system that can estimate how likely an attack is occurring and whether a system is still functioning correctly.
 
-- The confidence that a cyberattack is occurring
-- The confidence that a system can no longer function correctly
+The system will eventually use different types of data to help determine whether unusual activity is caused by a cyberattack, equipment malfunction, false alert, or something else.
 
-The system will use telemetry data to help distinguish between cyberattacks, equipment malfunctions, false alerts, and other possible causes of system disruption.
-
-The project will also use MITRE ATT&CK and MITRE ATLAS to help connect detected activity to known tactics and techniques. The final prototype will display results using confidence scores and visualizations to help explain what may be happening within the system.
+We also plan to use MITRE ATT&CK and MITRE ATLAS to help explain detected activity. Our final goal is to display confidence scores and visualizations that make the results easier to understand.
 
 ## Team
 
-**Nick Palmgren – Project Manager / Client Liaison**  
-Responsible for helping keep the team on schedule, dividing work, and communicating with the MITRE sponsor.
+**Nick Palmgren – Project Manager / Client Liaison**
 
-**Aaron Hoover – Requirements Analyst / Scribe**  
-Responsible for documenting project requirements, meeting notes, decisions, and project updates.
+Helps keep the team organized, manages project tasks, and communicates with our MITRE sponsor.
 
-**Kameela Lawbaugh – Architect / Technical Lead / Lead Researcher**  
-Responsible for helping make technical and architectural decisions and leading research involving MITRE ATT&CK, MITRE ATLAS, cybersecurity, machine learning, and data analysis.
+**Aaron Hoover – Requirements Analyst / Scribe**
 
-**Michael Cea-Garcia – Quality Assurance / Testing Lead**  
-Responsible for planning testing, checking system functionality, and helping make sure the different parts of the prototype work correctly.
+Documents requirements, meeting notes, project decisions, and updates.
+
+**Kameela Lawbaugh – Architect / Technical Lead / Lead Researcher**
+
+Helps make technical decisions and leads research involving cybersecurity, data analysis, machine learning, MITRE ATT&CK, and MITRE ATLAS.
+
+**Michael Cea-Garcia – Quality Assurance / Testing Lead**
+
+Handles testing plans, checks functionality, and helps make sure the different parts of the project work correctly.
 
 ## Main Project Areas
 
-The project is currently divided into five main areas:
+Our project is divided into five areas:
 
 1. **Data Collection and Processing**
-   - Understand the provided telemetry data
-   - Clean and organize the data
-   - Prepare the data for analysis
-   - Link to data source: https://lanl.ma.ic.ac.uk/data/cyber1/
+   - Understand the telemetry data
+   - Clean and organize datasets
+   - Extract data from different time ranges
+   - Prepare data for analysis
 
 2. **Analysis and Detection**
-   - Analyze telemetry data
-   - Identify unusual system behavior
-   - Develop machine learning models for detecting possible disruptions
+   - Look for unusual system behavior
+   - Compare known attacks with other activity
+   - Test detection rules
+   - Develop machine learning approaches
 
-3. **MITRE Mapping and Context**
-   - Map relevant activity to MITRE ATT&CK
-   - Explore MITRE ATLAS mappings when applicable
-   - Add cybersecurity context to detected behavior
+3. **MITRE Mapping**
+   - Connect findings to relevant MITRE ATT&CK techniques
+   - Research MITRE ATLAS when applicable
+   - Explain why certain behavior may be suspicious
 
 4. **Risk and Impact**
-   - Estimate cyberattack confidence
+   - Estimate attack confidence
    - Estimate system functionality confidence
-   - Evaluate the possible impact of detected activity
+   - Evaluate how detected activity may affect a system
 
-5. **Visualization and Reporting**
-   - Display confidence scores
-   - Show ATT&CK and ATLAS mappings
-   - Create visualizations that help explain system activity
+5. **Visualization**
+   - Display detection results
+   - Show confidence scores
+   - Present MITRE mappings
+   - Make system activity easier to understand
 
-## Current LANL Analysis
+## LANL Dataset
 
-We have started testing the project approach using the Los Alamos National Laboratory cybersecurity dataset.
+We are currently working with the Los Alamos National Laboratory (LANL) cybersecurity dataset.
 
-The LANL dataset includes authentication, process, DNS, network-flow, and red-team activity. The current analysis focuses on authentication data and known red-team events.
+Dataset: https://lanl.ma.ic.ac.uk/data/cyber1/
 
-The red-team data gives us known malicious activity that can be used as ground truth. This allows us to compare confirmed attack activity with normal authentication behavior.
+The dataset contains:
 
-Because the full authentication dataset is very large, smaller authentication windows are being used during development. The current expanded window covers `150000` to `230000` seconds and contains 23 known red-team events.
+- Authentication data
+- Process data
+- DNS data
+- Network-flow data
+- Red-team data
 
-### Recreating the Large Authentication Window
+We started with authentication data and have since added process analysis. Our next step is to look at network-flow data.
 
-The expanded authentication window used for the multi-user analysis is not stored in the repository because the file is approximately 954 MB.
+The red-team file contains known attack activity, which allows us to check whether our detection methods are identifying those events.
 
-#### Windows PowerShell
+Events that are not labeled as attacks are not automatically considered harmless.
 
-Open PowerShell.
+### Current Time Range
 
-Go to the folder where you want to save the LANL files:
+Our current analysis uses timestamps `150000` through `230000`.
 
-```powershell
-cd $HOME\Desktop\mitre-lanl
-```
+We chose a smaller section of the dataset because the full files are very large and difficult to work with all at once.
 
-Download part of the compressed LANL authentication dataset:
+We plan to move this window to different timestamps to see whether our findings are consistent across other parts of the dataset.
 
-```powershell
-curl.exe -L -H "Range: bytes=0-1200000000" https://lanl.ma.ic.ac.uk/data/cyber1/auth.txt.gz -o auth_partial.gz
-```
+---
 
-Decompress the file:
+## Authentication Analysis
 
-```powershell
-gzip -dc auth_partial.gz > auth_partial.txt
-```
+### Initial Analysis
 
-Filter the authentication data to timestamps `150000` through `230000`:
+We started by analyzing authentication activity for `U748@DOM1`, one of the users with known red-team activity.
 
-```powershell
-Get-Content auth_partial.txt | Where-Object {
-    $time = [int](($_ -split ',')[0])
-    $time -ge 150000 -and $time -le 230000
-} | Set-Content auth_attack_window_large.txt
-```
-
-Check that the file was created:
-
-```powershell
-Get-Item auth_attack_window_large.txt
-```
-
-Check the last few rows:
-
-```powershell
-Get-Content auth_attack_window_large.txt -Tail 3
-```
-
-The final rows should have timestamps around:
-
-```text
-230000
-```
-
-The generated file is used by:
-
-```text
-analysis/multi_user_analysis.py
-```
-
-The analysis also requires:
-
-```text
-redteam.txt
-```
-
-## How to Use
-
-1. Clone the repo and create a virtual environment:
-   python -m venv venv
-
-   .\venv\Scripts\Activate.ps1
-
-   pip install -r requirements.txt
-2. Recreate the data window (see "Recreating the Large Authentication Window").
-3. Download redteam.txt from https://lanl.ma.ic.ac.uk/data/cyber1/ and place it in data/.
-4. Run the analysis:
-   python analysis/multi_user_analysis.py
-5. Run tests:
-   pytest
-
-## Release notes
-
-### What is working in this submission
-- Authentication analysis of the LANL dataset using red-team events as ground truth
-- Per-user behavioral feature extraction (new source/destination, frequency,
-  NTLM usage, 5-minute activity counts), generalized across all attacked users
-- Multi-user analysis over the 150000–230000 window (23 red-team events, 5 users)
-- Basic explainable risk score (avg normal 9.95 vs. avg attack 40.0)
-- DNS profiling script
-- Output CSVs in /output; tests in /tests
-
-### Not yet implemented (differs from Milestone 3 plan)
-- ML model (PyTorch) for detection/classification: currently rule-based scoring
-- MITRE ATT&CK / ATLAS mapping in code: currently interpretation only
-- System functionality confidence score
-- Dashboard / frontend; visualizations are limited
-- Correlation with process, DNS, and network-flow data
-
-### Known limitations
-- Authentication data alone doesn't reliably separate attacks (some normal events
-  score high, some attacks score low)
-- The 954 MB data window is not in the repo and must be regenerated
-
-### Current Analysis Pipeline
-
-```text
-LANL authentication data
-        +
-red-team ground truth
-        ↓
-label known attacks
-        ↓
-extract behavioral features
-        ↓
-compare attack vs normal behavior
-        ↓
-calculate basic risk score
-        ↓
-MITRE ATT&CK mapping and interpretation
-```
-
-### Initial User Analysis
-
-The first analysis focused on the user `U748@DOM1` because the account appeared in several known red-team events.
-
-For this user, the original selected window contained:
+The original window contained:
 
 - 224 authentication events
 - 30 unique source computers
 - 31 unique destination computers
-- 0 failed logins
 - 7 known attack events
 
-### Multi-User Analysis
+We compared the known attacks with the user's other authentication activity to look for differences.
 
-The authentication analysis was expanded to a larger time window from `150000` to `230000`.
+### Expanded Analysis
 
-The larger analysis includes 23 known red-team events across five attacked users:
+We later expanded the analysis to include five users with known red-team activity:
 
 - `U620@DOM1`
 - `U748@DOM1`
@@ -210,27 +114,20 @@ The larger analysis includes 23 known red-team events across five attacked users
 - `U636@DOM1`
 - `U1723@DOM1`
 
-The analysis compares known attack activity with normal authentication behavior for each user.
+Results:
 
-The behavioral features include:
+| Metric | Result |
+|---|---:|
+| Total authentication events | 3,811 |
+| Known attacks | 23 |
+| Other events | 3,788 |
+| Users analyzed | 5 |
 
-- New source computer
-- New destination computer
-- Source computer frequency
-- Destination computer frequency
-- NTLM usage
-- Number of authentication events within five minutes
-- Number of unique destination computers within five minutes
+These users were selected because they appeared in the red-team data during our chosen time range.
 
-All 23 known red-team events in the larger window used NTLM. However, NTLM also appeared in normal activity, so it cannot be used alone to identify an attack.
+### Authentication Features
 
-Other features varied between users. Some attacks involved new source or destination computers while others did not. Attack activity also often involved source or destination computers that were used less frequently than during normal activity.
-
-The larger sample continues to show that no single feature consistently identifies every attack. This supports combining multiple behavioral indicators when calculating a cyberattack confidence score.
-
-### Behavioral Features
-
-Several behavioral features were first created for the U748 analysis and were later expanded into more general features that could be applied across multiple users:
+We created several features to compare authentication behavior:
 
 - New source computer
 - New destination computer
@@ -238,117 +135,546 @@ Several behavioral features were first created for the U748 analysis and were la
 - Destination computer frequency
 - Authentication type
 - NTLM usage
-- Number of authentication events within five minutes
-- Number of unique destinations accessed within five minutes
+- Authentication events within five minutes
+- Unique destinations within five minutes
 
-The `C17693` feature was useful for investigating the original attack window because all seven known U748 attacks originated from that computer. However, this would not be a good final machine learning feature by itself because the model could simply memorize that computer instead of learning more general attack behavior.
+These features help us look at how a user's behavior changes during known attacks.
 
-The feature analysis showed that a new destination may be a useful signal, but it is not consistent across every attacked user.
+### What We Found
 
-NTLM appeared in all known red-team events in the larger window, but it also appeared during normal activity. This means NTLM is useful as supporting evidence but cannot be treated as an attack by itself.
+All 23 known attacks in this window used NTLM authentication.
 
-### Basic Risk Score
+However, NTLM also appeared in other activity, so we cannot use it alone to determine whether something is an attack.
 
-A basic explainable risk score was created to test whether several weaker indicators could be combined.
+We also found that attacks sometimes involved computers that users rarely connected to.
 
-The current score considers:
+For example, all seven of the original U748 attacks came from computer `C17693`.
 
-- New destination
+This was useful for investigating those events, but we do not want a future model to simply memorize that computer.
+
+Our goal is to identify patterns that could also work on different computers and time ranges.
+
+## Initial Risk Score
+
+We created a basic risk score using:
+
+- New destinations
 - NTLM authentication
-- Rare source computer
-- Rare destination computer
+- Rare source computers
+- Rare destination computers
 
-The initial results were:
+Results:
 
-```text
-Average normal risk score: 9.95
-Average attack risk score: 40.0
+| Activity | Average Risk Score |
+|---|---:|
+| Other authentication activity | 9.95 |
+| Known attacks | 40.00 |
+
+Known attacks generally received higher scores, but there was still overlap between the two groups.
+
+Some events without known attack labels received high scores, and some known attacks received lower scores.
+
+This showed us that we need more information than authentication data alone.
+
+The current risk score is experimental and is not an actual probability of an attack.
+
+---
+
+## Sigma-Inspired Detection
+
+We installed PySigma 2.0.1 and downloaded the SigmaHQ rules repository.
+
+We have not run the official SigmaHQ rules against the LANL dataset yet. Instead, we created a few custom detection rules based on similar ideas.
+
+### Detection Rules
+
+We tested three rules:
+
+1. **Unusual Destination:** Checks for newly observed destinations with low usage frequency.
+2. **Multiple Destinations:** Checks whether a user connects to at least five different destinations within five minutes.
+3. **Authentication Burst:** Checks whether at least ten authentication events occur within five minutes.
+
+### Results
+
+| Metric | Result |
+|---|---:|
+| Events analyzed | 3,811 |
+| Known attacks | 23 |
+| Attacks detected | 15 |
+| Attacks missed | 8 |
+| Total alerts | 2,678 |
+| Recall | 65.22% |
+
+The combined rules detected 15 out of 23 known attacks.
+
+The problem was that they also flagged a lot of other events.
+
+This helped us see that simply counting authentication activity was not enough.
+
+## Rarity Threshold Analysis
+
+We then tested whether uncommon source and destination computers were better indicators of suspicious activity.
+
+Instead of using the total number of times a computer appeared in the entire dataset, we counted how often it had appeared previously.
+
+This keeps the analysis from using future events to evaluate earlier ones.
+
+We tested eight thresholds.
+
+### Results
+
+| Threshold | Attacks Detected | Other Events Flagged | Recall |
+|---|---|---:|---:|
+| 1 | 3/23 | 27 | 13.04% |
+| 2 | 3/23 | 93 | 13.04% |
+| 3 | 7/23 | 132 | 30.43% |
+| 5 | 10/23 | 238 | 43.48% |
+| 10 | 15/23 | 456 | 65.22% |
+| 15 | 16/23 | 640 | 69.57% |
+| 20 | 20/23 | 837 | 86.96% |
+| 25 | 23/23 | 1,016 | 100.00% |
+
+At a threshold of 20, we detected 20 of the 23 known attacks.
+
+At 25, we detected all 23 attacks, but also flagged 1,016 events without known attack labels.
+
+The higher threshold detected more attacks but also produced more alerts.
+
+These results are based only on our selected time window, so we still need to test whether the same thresholds work elsewhere.
+
+---
+
+## Process Data Analysis
+
+After working with authentication data, we started looking at process activity.
+
+The process dataset records when processes start and end on different computers.
+
+We wanted to see whether there were differences in process activity around known attacks.
+
+Process dataset: https://lanl.ma.ic.ac.uk/data/cyber1/proc.txt.gz
+
+### Extracting the Process Data
+
+We created `extract_process_window.py` to extract process events from timestamps `150000` through `230000`.
+
+Results:
+
+| Metric | Result |
+|---|---:|
+| Events read | 17,855,081 |
+| Events saved | 5,588,686 |
+
+The extracted file is called `proc_attack_window_large.txt` and is approximately 186 MB.
+
+We keep this file outside the GitHub repository because of its size.
+
+### Process Analysis Results
+
+We created `process_analysis.py` to look at process starts, ends, users, computers, and process frequencies.
+
+| Metric | Result |
+|---|---:|
+| Total process events | 5,588,686 |
+| Process starts | 4,392,157 |
+| Process ends | 1,196,529 |
+| Unique users | 14,991 |
+| Unique computers | 6,470 |
+| Unique process identifiers | 4,413 |
+
+### Most Common Processes
+
+| Process | Starts |
+|---|---:|
+| P16 | 1,224,889 |
+| P5 | 504,709 |
+| P14 | 223,922 |
+| P13 | 210,503 |
+| P25 | 174,242 |
+| P7 | 140,261 |
+| P8 | 124,987 |
+| P10 | 122,504 |
+| P21 | 86,639 |
+| P9 | 86,564 |
+
+The LANL dataset uses anonymized process identifiers, so we do not know the actual program names.
+
+For now, we are focusing on how often processes appear and whether that activity changes around attacks.
+
+## Comparing Process Activity with Known Attacks
+
+We created `process_attack_correlation.py` to look at process activity around the 23 known red-team authentication events.
+
+For each event, we checked the source and destination computers within five minutes before and after the authentication.
+
+Results:
+
+| Metric | Result |
+|---|---:|
+| Known attacks | 23 |
+| Computer windows analyzed | 46 |
+| Average destination process starts | 26.30 |
+| Median destination process starts | 16 |
+| Maximum destination process starts | 79 |
+| Average source process starts | 0 |
+
+One thing we noticed was that computer `C17693`, which appeared as the source of the known attacks, did not have any process records in our extracted dataset.
+
+That does not mean the computer had no processes running. It just means we do not have process data for it in this window.
+
+We did find process activity on destination computers.
+
+For example, computer `C231` had 77 process starts near one known attack and 79 near another.
+
+## Process Behavior Comparison
+
+We then created `compare_process_behavior.py` to compare process activity around known attacks with other authentication activity.
+
+We excluded events without the needed destination process data. We also excluded unlabeled events that occurred too close to known attacks on the same destination computer.
+
+This left us with:
+
+- 22 known attacks
+- 3,381 other authentication events
+- 3,403 total events
+
+### Results
+
+| Metric | Known Attacks | Other Events |
+|---|---:|---:|
+| Average process starts | 27.50 | 4.75 |
+| Average unique processes | 13.68 | 2.75 |
+
+We found that known attack windows had about 5.8 times more process starts on average.
+
+They also had more unique process identifiers.
+
+This is interesting because it suggests process activity could help us identify suspicious behavior.
+
+However, we still need to check whether the difference is related to the attacks or whether some computers are naturally more active than others.
+
+The windows also overlap in some cases, so these results are not enough to confirm that increased process activity is a reliable attack indicator.
+
+---
+
+## Current Analysis Files
+
+### Authentication
+
+**`analysis/authentication/analyze_lanl.py`**
+
+Loads authentication and red-team data and analyzes U748 activity.
+
+**`analysis/authentication/feature_analysis.py`**
+
+Creates authentication features for U748.
+
+**`analysis/authentication/compare_behavior.py`**
+
+Compares known attacks with other authentication activity.
+
+**`analysis/authentication/risk_score.py`**
+
+Calculates our initial authentication risk score.
+
+**`analysis/multi_user_analysis.py`**
+
+Expands the authentication analysis across multiple users.
+
+**`analysis/authentication/sigma_detection.py`**
+
+Tests our three Sigma-inspired detection rules.
+
+**`analysis/authentication/rarity_threshold_analysis.py`**
+
+Tests different source and destination rarity thresholds.
+
+### Process
+
+**`analysis/process/extract_process_window.py`**
+
+Extracts process data from the selected timestamp window.
+
+**`analysis/process/process_analysis.py`**
+
+Analyzes process starts, ends, and frequencies.
+
+**`analysis/process/process_attack_correlation.py`**
+
+Looks at process activity around known red-team events.
+
+**`analysis/process/compare_process_behavior.py`**
+
+Compares process activity near known attacks with other authentication events.
+
+### DNS
+
+**`analysis/dns/profile_dns.py`**
+
+Profiles DNS data for future analysis.
+
+## Current Output Files
+
+### Authentication
+
+- `output/u748_features.csv`
+- `output/u748_risk_scores.csv`
+- `output/multi_user_features.csv`
+- `output/multi_user_features_large.csv`
+- `output/sigma_detection_results.csv`
+- `output/sigma_detection_summary.csv`
+- `output/rarity_threshold_comparison.csv`
+
+### Process
+
+- `output/process_frequency.csv`
+- `output/process_attack_correlation.csv`
+- `output/process_behavior_comparison.csv`
+
+The CSV files contain the results from our analysis scripts.
+
+---
+
+## How to Run
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Potater92/mitre-capstone.git
+cd mitre-capstone
 ```
 
-Some normal events still received high scores and some known attacks received lower scores. This shows that authentication data alone is not enough to reliably identify an attack.
+### Create a Virtual Environment
 
-### Next Steps for the LANL Analysis
+On macOS or Linux:
 
-The authentication analysis has now been expanded across multiple attacked users and a larger time window.
-
-The next goal is to improve the confidence scoring and begin correlating authentication events with other LANL telemetry sources, especially:
-
-- Process activity
-- DNS activity
-- Network-flow activity
-
-Instead of only looking at one suspicious login, the system could eventually look for a sequence of related activity such as:
-
-```text
-Suspicious authentication
-        ↓
-Unusual process activity
-        ↓
-Network communication
-        ↓
-Related activity on another system
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-This would give the system stronger evidence when calculating a cyberattack confidence score.
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Data Setup
+
+Download the required data from:
+
+https://lanl.ma.ic.ac.uk/data/cyber1/
+
+The current analysis uses:
+
+- `auth.txt.gz`
+- `proc.txt.gz`
+- `redteam.txt.gz`
+
+The large extracted authentication and process files are kept locally and are not included in the repository.
+
+The scripts require the relevant input files to be available at their configured paths.
+
+### Run Authentication Analysis
+
+```bash
+python analysis/multi_user_analysis.py
+```
+
+### Run Sigma-Inspired Detection
+
+```bash
+python analysis/authentication/sigma_detection.py
+```
+
+### Run Rarity Threshold Analysis
+
+```bash
+python analysis/authentication/rarity_threshold_analysis.py
+```
+
+### Run Process Analysis
+
+```bash
+python analysis/process/process_analysis.py
+```
+
+### Run Process Attack Correlation
+
+```bash
+python analysis/process/process_attack_correlation.py
+```
+
+### Run Process Comparison
+
+```bash
+python analysis/process/compare_process_behavior.py
+```
+
+The process scripts require the extracted process window, and some scripts also use authentication output files generated earlier.
+
+### Run Tests
+
+```bash
+pytest
+```
+
+---
+
+## Current Project Status
+
+### What We Have Working
+
+- Authentication analysis
+- Multi-user authentication features
+- Matching authentication events with red-team data
+- Basic risk scoring
+- Sigma-inspired detection rules
+- Rarity threshold testing
+- Process data extraction
+- Process frequency analysis
+- Authentication and process correlation
+- Process behavior comparison
+- Initial DNS profiling
+
+### What We Still Need
+
+- Network-flow analysis
+- Testing different timestamp windows
+- Better comparison of normal and suspicious behavior
+- Combining features from multiple telemetry sources
+- Machine learning detection and classification
+- MITRE ATT&CK and ATLAS mapping in code
+- System functionality confidence scoring
+- Dashboard and visualizations
+- More testing and validation
+
+---
+
+## Next Steps
+
+### 1. Look at Network-Flow Data
+
+Our next step is to work with the LANL network-flow dataset:
+
+https://lanl.ma.ic.ac.uk/data/cyber1/flows.txt.gz
+
+We want to see what information is available and whether network communication can help explain the activity we are finding in the authentication and process data.
+
+We plan to:
+
+- Download and inspect the network-flow dataset
+- Extract records from our selected timestamp window
+- Look at communication between computers
+- Compare network activity around known attacks
+- See whether network-flow patterns support what we found in the other datasets
+
+### 2. Move the Timestamp Window
+
+We also want to move beyond timestamps `150000` through `230000`.
+
+We plan to select different time ranges and repeat parts of our analysis.
+
+This will help us see whether our current findings are consistent or whether they only appear in the original window.
+
+We want to:
+
+- Select new timestamp ranges
+- Find known red-team activity in those ranges
+- Extract matching authentication, process, and network-flow data
+- Compare the results with our current window
+- Retest the rarity thresholds
+- Check whether the same process activity patterns appear elsewhere
+
+### 3. Improve Process Analysis
+
+We found more process activity around known attacks, but we still need to compare that activity with what is normal for each computer.
+
+We also want to look into rare processes, new process identifiers, and changes in process frequency over time.
+
+### 4. Combine the Data
+
+So far, authentication and process data have mostly been analyzed separately, with some initial correlation between them.
+
+We want to bring the different sources together so we can look at related events instead of evaluating each event by itself.
+
+### 5. Improve Detection and MITRE Mapping
+
+Once we have more data, we plan to improve our detection rules and confidence scoring.
+
+We also want to connect relevant findings to MITRE ATT&CK techniques where the evidence supports a mapping.
+
+---
 
 ## Technologies
 
-Planned technologies include:
-
 - Python
-- PyTorch
 - pandas
 - NumPy
+- PySigma
+- PyTorch (planned)
 - Matplotlib
 - pytest
 - GitHub
 - MITRE ATT&CK
 - MITRE ATLAS
-
-Additional tools and libraries may be added as the project develops.
+- Apache CALDERA (stretch goal)
 
 ## Project Milestones
 
 ### Milestone 1 – Requirements and Research
-- Understand the project goal
+
+- Understand the project goals
 - Meet with the MITRE sponsor
 - Identify requirements
 - Research ATT&CK, ATLAS, and CALDERA
-- Define the scope of the prototype
+- Define the project scope
 
 ### Milestone 2 – System Design and Data
-- Create the initial system architecture
-- Select software tools
-- Understand the dataset format
-- Begin data processing
-- Define the initial ATT&CK and ATLAS mapping approach
+
+- Design the initial architecture
+- Select tools
+- Understand the LANL datasets
+- Begin processing data
+- Plan the MITRE mapping approach
 
 ### Milestone 3 – Core Prototype
-- Develop the initial data analysis system
+
+- Build the initial analysis system
 - Begin disruption classification
 - Add basic ATT&CK and ATLAS mappings
-- Create initial confidence scores
-- Begin dashboard or frontend development
+- Create confidence scoring
+- Begin dashboard development
 
 ### Milestone 4 – Integration and Testing
-- Connect the major system components
-- Improve risk and impact assessment
+
+- Connect different system components
 - Improve confidence scoring
 - Add visualizations
-- Test multiple disruption scenarios
+- Test different scenarios
+- Improve detection results
 
 ### Milestone 5 – Final Prototype
-- Fully integrate the main system
+
+- Integrate the system
 - Complete detection and classification
-- Display ATT&CK and ATLAS mappings
+- Display MITRE mappings
 - Display confidence scores
 - Complete visualizations
-- Fix major bugs
-- Complete testing and documentation
+- Finish testing and documentation
 
 ### Stretch Goal – Apache CALDERA
 
-If time allows, Apache CALDERA may be used to simulate attacks against a virtual machine. The system can then be tested to determine whether the machine learning model correctly identifies and maps the simulated activity.
+If time allows, we may use Apache CALDERA to simulate attacks on a virtual machine and test whether our system can recognize the activity.
+
+---
 
 ## Repository Structure
 
@@ -359,7 +685,15 @@ mitre-capstone/
 │   │   ├── analyze_lanl.py
 │   │   ├── compare_behavior.py
 │   │   ├── feature_analysis.py
-│   │   └── risk_score.py
+│   │   ├── risk_score.py
+│   │   ├── sigma_detection.py
+│   │   └── rarity_threshold_analysis.py
+│   │
+│   ├── process/
+│   │   ├── extract_process_window.py
+│   │   ├── process_analysis.py
+│   │   ├── process_attack_correlation.py
+│   │   └── compare_process_behavior.py
 │   │
 │   ├── dns/
 │   │   └── profile_dns.py
@@ -367,12 +701,17 @@ mitre-capstone/
 │   └── multi_user_analysis.py
 │
 ├── data/
-│
 ├── output/
+│   ├── u748_features.csv
+│   ├── u748_risk_scores.csv
 │   ├── multi_user_features.csv
 │   ├── multi_user_features_large.csv
-│   ├── u748_features.csv
-│   └── u748_risk_scores.csv
+│   ├── sigma_detection_results.csv
+│   ├── sigma_detection_summary.csv
+│   ├── rarity_threshold_comparison.csv
+│   ├── process_frequency.csv
+│   ├── process_attack_correlation.csv
+│   └── process_behavior_comparison.csv
 │
 ├── tests/
 ├── .gitignore
@@ -380,139 +719,26 @@ mitre-capstone/
 └── requirements.txt
 ```
 
-## Current Analysis Files
+## Known Limitations
 
-**`analysis/authentication/analyze_lanl.py`**  
-Loads the authentication and red-team data, matches known red-team activity to authentication events, and analyzes U748 authentication activity.
+- We are only using a small portion of the full LANL dataset.
+- Our current authentication window contains 23 known red-team events.
+- The accounts analyzed were selected based on known red-team activity.
+- Events without known attack labels are not necessarily normal.
+- Detection thresholds still need more testing.
+- Process names are anonymized.
+- Some computers do not have recorded process data.
+- More process starts do not automatically mean an attack occurred.
+- Some of our process observation windows overlap.
+- We have not yet tested whether the results hold across different timestamp windows.
+- We have not built the complete machine learning model or dashboard.
 
-**`analysis/authentication/feature_analysis.py`**  
-Creates behavioral features for U748 authentication activity and saves the results to `u748_features.csv`.
+## Summary
 
-**`analysis/authentication/compare_behavior.py`**  
-Compares normal authentication activity with known attack activity to identify behavioral differences.
+So far, we have analyzed authentication activity, tested different detection rules, and started comparing process activity around known attacks.
 
-**`analysis/authentication/risk_score.py`**  
-Calculates a basic explainable risk score using multiple behavioral indicators.
+Our authentication experiments showed that no single indicator was enough to reliably identify all attacks. The rarity thresholds improved recall, but also flagged a large number of other events.
 
-**`analysis/multi_user_analysis.py`**  
-Expands the authentication analysis to all users with known red-team activity in the selected time window. Calculates behavioral features for each user.
+When we added process data, we found that known attack windows had more process activity on average. We still need to determine whether that difference is meaningful when comparing the same computers over time.
 
-**`analysis/dns/profile_dns.py`**  
-Profiles DNS telemetry for future integration with authentication and other system activity.
-
-**`analysis/authentication/sigma_detection.py`**  
-Tests three experimental detection rules: unusual destinations, multiple destinations within five minutes, and authentication bursts. Compares rule matches with known red-team events.
-
-**`analysis/authentication/rarity_threshold_analysis.py`**  
-Tests source and destination rarity using previous authentication events. Compares different frequency thresholds to determine how many known attacks are detected and how many additional events are flagged.
-
-## Current Output Files
-
-**`output/u748_features.csv`**  
-Contains the behavioral features generated for U748 authentication activity.
-
-**`output/u748_risk_scores.csv`**  
-Contains the risk scores calculated for U748 authentication events.
-
-**`output/multi_user_features.csv`**  
-Contains behavioral features for users with known red-team events in the original selected authentication window.
-
-**`output/multi_user_features_large.csv`**  
-Contains behavioral features from the expanded authentication window covering timestamps 150000–230000, including 23 known red-team events across five attacked users.
-
-**`output/sigma_detection_results.csv`**  
-Contains authentication events with the results of each experimental detection rule.
-
-**`output/sigma_detection_summary.csv`**  
-Summarizes the number of alerts, known attacks detected, missed attacks, and detection performance for each rule.
-
-**`output/rarity_threshold_comparison.csv`**  
-Contains the results of testing eight different source and destination rarity thresholds.
-
-## Experimental Authentication Detection
-
-The authentication analysis was expanded to test additional detection rules inspired by the Sigma framework.
-
-The SigmaHQ repository was downloaded, and PySigma 2.0.1 was installed to support future rule integration.
-
-The current detection scripts use custom behavioral rules. Official SigmaHQ detection rules have not yet been executed against the LANL dataset.
-
-### Initial Detection Results
-
-The initial experiments analyzed 3,811 authentication events, including 23 known red-team events.
-
-Three detection rules were tested:
-
-- **Unusual destination:** Identifies a newly observed destination with low destination frequency.
-- **Multiple destinations:** Identifies activity involving at least five unique destination computers within five minutes.
-- **Authentication burst:** Identifies at least ten authentication events within five minutes.
-
-The combined rules detected 15 of the 23 known attacks, or 65.22%. However, they generated 2,678 total alerts.
-
-These results suggested that authentication volume alone was not a reliable way to distinguish known attacks from other activity.
-
-### Rarity-Based Detection
-
-Additional analysis showed that known red-team events generally involved source and destination computers with lower overall usage frequencies.
-
-New detection conditions were tested using previous observations rather than total frequency counts from the entire dataset. This reduced the use of future information when evaluating an event.
-
-Eight rarity thresholds were compared.
-
-| Threshold | Known Attacks Detected | Other Events Flagged | Recall |
-|---|---|---|---|
-| 1 | 3/23 | 27 | 13.04% |
-| 2 | 3/23 | 93 | 13.04% |
-| 3 | 7/23 | 132 | 30.43% |
-| 5 | 10/23 | 238 | 43.48% |
-| 10 | 15/23 | 456 | 65.22% |
-| 15 | 16/23 | 640 | 69.57% |
-| 20 | 20/23 | 837 | 86.96% |
-| 25 | 23/23 | 1,016 | 100.00% |
-
-A threshold of 20 detected 20 of the 23 known attacks while flagging 837 other events.
-
-A threshold of 25 detected all 23 known attacks but generated 1,016 alerts from events without known red-team labels.
-
-The results show a tradeoff between detecting known attacks and reducing the number of alerts.
-
-### Running the Detection Scripts
-
-From the repository root, activate the Python virtual environment and install the required dependencies.
-
-The experiments use the existing `output/multi_user_features_large.csv` file.
-
-Run the initial detection analysis:
-
-```bash
-python analysis/authentication/sigma_detection.py
-```
-
-Run the rarity threshold comparison:
-
-```bash
-python analysis/authentication/rarity_threshold_analysis.py
-```
-
-Both scripts save their results to the `output` directory.
-
-### Limitations
-
-- The experiments were conducted using a limited authentication window containing 23 known red-team events.
-- Results have not been validated using an independent dataset.
-- Events without red-team labels are not necessarily harmless.
-- Rarity counts begin at the start of the selected analysis window.
-- Events with identical timestamps are evaluated in their existing row order.
-- The current analysis focuses only on users associated with known red-team activity.
-- Detection thresholds are experimental and require further testing.
-- The scripts do not yet execute official SigmaHQ detection rules.
-
-### Next Steps
-
-- Test detection performance using separate training and evaluation windows.
-- Identify SigmaHQ authentication rules compatible with LANL data.
-- Use PySigma to parse and adapt supported detection rules.
-- Improve detection accuracy while reducing unnecessary alerts.
-- Combine authentication results with DNS, process, and network-flow activity.
-- Map supported detections to MITRE ATT&CK techniques.
-- Integrate detection results into the project's confidence scoring and visualization system.
+Next, we are going to look at the network-flow dataset and move the timestamp window to see what we find in other parts of the LANL data. These results will help us decide which features are worth using as we continue building the detection system.
