@@ -3,6 +3,7 @@ name: MITRE QA Tests
 on:
   push:
     branches:
+      - main
       - qa-testing
   pull_request:
     branches:
