@@ -1,0 +1,43 @@
+# Two documents: a base rule (per-event match) and a correlation rule
+# (counts distinct accounts failing from one source computer in a window).
+title: Failed Logon (Human Accounts)
+name: lanl_failed_logon
+status: experimental
+description: Failed logon attempts by non-machine, non-anonymous accounts.
+logsource:
+  product: lanl
+  category: authentication
+detection:
+  selection:
+    Orientation: LogOn
+    Outcome: Fail
+  filter_machine_and_anonymous:
+    User|startswith:
+      - C            # computer accounts, e.g. C123$@DOM1
+      - ANONYMOUS    # ANONYMOUS LOGON@...
+  condition: selection and not filter_machine_and_anonymous
+level: informational
+---
+title: Password Spraying Pattern - Many Accounts Failing From One Source
+name: failed_user_spray_count
+status: experimental
+description: >
+  A single source computer produces failed logons for many distinct accounts
+  within a short window. Candidate password spraying / brute force.
+correlation:
+  type: value_count
+  rules:
+    - lanl_failed_logon
+  group-by:
+    - SrcComputer
+  timespan: 5m
+  condition:
+    gte: 5             
+    field: User
+tags:
+  - attack.credential_access
+  - attack.t1110
+level: medium
+falsepositives:
+  - Shared jump hosts or terminal servers where many users mistype passwords
+  - Misconfigured services retrying with stale credentials

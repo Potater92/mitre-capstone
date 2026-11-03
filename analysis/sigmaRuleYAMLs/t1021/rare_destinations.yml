@@ -14,7 +14,12 @@ detection:
     User|startswith:
       - C
       - ANONYMOUS
-  condition: selection and not filter_machine_and_anonymous
+  filter_known_scanners:
+      # Identified from BEHAVIOR (same 95 hosts in every 5-minute window all
+      # day), not from redteam.txt. Add other automated accounts the same way.
+      User:
+        - U66@DOM1
+  condition: selection and not filter_machine_and_anonymous and not filter_known_scanners
 tags:
   - attack.lateral_movement
   - attack.t1021

@@ -1,0 +1,31 @@
+# Single document: an event-level rule, so every match is an alert.
+# Needs the new_destination feature from add_history_features() to be computed first.
+title: First-Time Credential Use On An Asset
+name: zero_history_edge_flag
+status: experimental
+description: >
+  A human account successfully logs on to a destination computer it has not
+  logged on to earlier in the data (zero history on that user-to-host edge).
+logsource:
+  product: lanl
+  category: authentication
+detection:
+  selection:
+    Orientation: LogOn
+    Outcome: Success
+    NewDestination: 1
+  filter_machine_and_anonymous:
+    User|startswith:
+      - C            # computer accounts, e.g. C123$@DOM1
+      - ANONYMOUS    # ANONYMOUS LOGON@...
+  condition: selection and not filter_machine_and_anonymous
+tags:
+  - attack.initial_access
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.defense_evasion
+  - attack.t1078
+level: low
+falsepositives:
+  - Start of the loaded window, where every pair looks new (history warm-up)
+  - New hires, role changes, and admins doing legitimate first-time maintenance

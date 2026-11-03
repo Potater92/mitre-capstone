@@ -23,7 +23,11 @@ detection:
       # Identified from BEHAVIOR (same 95 hosts in every 5-minute window all
       # day), not from redteam.txt. Add other automated accounts the same way.
       User:
+        - U22@DOM1
         - U66@DOM1
+        - U7@DOM1
+        - U14@DOM1
+        - U24@DOM1
   condition: selection and not filter_machine_and_anonymous and not filter_known_scanners
 level: informational
 ---
@@ -42,7 +46,7 @@ correlation:
     - User
   timespan: 5m
   condition:
-    gte: 8            # a guess: tune on the TRAINING period only
+    gte: 8           
     field: DstComputer
 tags:
   - attack.lateral_movement

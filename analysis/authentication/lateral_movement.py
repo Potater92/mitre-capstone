@@ -167,7 +167,7 @@ def evaluate(df, alerts, flagged, hits, redteam_path):
     print(f"Alerts per day: {n_alerts / days:.1f}")
 
     print("\n-- User-level --")
-    rt_users, alert_users = set(rt[USER]), set(alerts[USER])
+    rt_users, alert_users = set(rt[USER]), set(flagged[USER])
     print(f"Red team users in window: {len(rt_users)}   triggering any alert: "
           f"{len(rt_users & alert_users)}   alerting users overall: {len(alert_users)}")
 
