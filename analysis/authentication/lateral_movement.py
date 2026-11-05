@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[2]
 AUTH_FILE_PATH = ROOT / "data" / "auth_attack_window_large.txt"
 RULES_DIRECTORY = ROOT / "analysis" / "sigmaRuleYAMLs" / "t1021"
 REDTEAM_FILE_PATH = ROOT / "data" / "redteam.txt"
+CURRENT_CSV_PATH = ROOT / "output" / "multi_user_features_large.csv"
+OUTPUT_PATH = ROOT / "output" / "auth_attack_window_large_tags.csv"
 
 
 AUTH_COLUMNS = ["time", "source_user", "destination_user", "source_computer",
@@ -185,10 +187,66 @@ def add_history_features(df):
     df["new_destination"] = (df["prior_pair_count"] == 0).astype(int)
     return df
 
+def rule_techniques(rule_path):
+    """ATT&CK IDs from a rule file's tags: 'attack.t1021.002' -> 'T1021.002'."""
+    with open(rule_path) as f:
+        docs = list(yaml.safe_load_all(f))
+    tags = [t for d in docs for t in d.get("tags", []) if t.startswith("attack.t")]
+    return sorted({t.split("attack.")[1].upper() for t in tags})
+
+
+def tag_techniques(df, rules_dir):
+    """Run every rule on df. Adds rule_hit_<rulefile> (0/1) and a techniques column.
+    Never reads the 'attack' column, so the tags can't leak the labels."""
+    df = df.copy()
+    df["event_id"] = range(len(df))            # exact row identity, survives the merges in detect()
+    rule_techs = {}
+    for rule_path in sorted(Path(rules_dir).glob("*.yml")):
+        _, flagged, _ = detect(df, rule_path)
+        col = f"rule_hit_{rule_path.stem}"
+        df[col] = df["event_id"].isin(set(flagged["event_id"])).astype(int)
+        rule_techs[col] = rule_techniques(rule_path)
+
+    hit_cols = list(rule_techs)
+    any_hit = df[hit_cols].any(axis=1)
+    df["techniques"] = ""
+    df.loc[any_hit, "techniques"] = df.loc[any_hit, hit_cols].apply(
+        lambda r: ",".join(sorted({t for c in hit_cols if r[c] for t in rule_techs[c]})), axis=1)
+    return df.drop(columns="event_id"), hit_cols
+
+
+def merge_into_existing(existing, tagged, hit_cols):
+    keys = ["time", "source_user", "source_computer", "destination_computer"]
+    tags = (tagged.loc[tagged[hit_cols].any(axis=1), keys + hit_cols + ["techniques"]]
+                  .drop_duplicates(keys))
+    out = existing.merge(tags, on=keys, how="left")      # left join + unique keys: no row inflation
+    out[hit_cols] = out[hit_cols].fillna(0).astype(int)
+    out["techniques"] = out["techniques"].fillna("")
+    return out
+
+def add_attack_technique(out):
+    """For known red team events, copy the rule-assigned technique(s);
+    attack events that no rule matched are labeled 'unmapped'."""
+    is_attack = out["attack"] == 1
+    out["attack_technique"] = ""
+    out.loc[is_attack, "attack_technique"] = out.loc[is_attack, "techniques"].replace("", "unmapped")
+    return out
+
 if __name__ == "__main__":
     df = pd.read_csv(AUTH_FILE_PATH, header=None, names=AUTH_COLUMNS,
                      usecols=LOAD_COLUMNS, dtype={"time": "int64"})
     df = add_history_features(df)
+    tagged, hit_cols = tag_techniques(df, RULES_DIRECTORY)
+
+    existing = pd.read_csv(CURRENT_CSV_PATH)       # multi_user_features_large.csv
+    out = merge_into_existing(existing, tagged, hit_cols)
+    out = add_attack_technique(out)
+
+    attacks = out[out["attack"] == 1]
+    print(attacks["attack_technique"].value_counts())
+    print(f"{(attacks['attack_technique'] != 'unmapped').sum()} of {len(attacks)} attack events matched a rule")
+
+    out.to_csv(OUTPUT_PATH, index=False)        # send to a new csv with attack tag column
     missing = [c for c in FIELD_MAP.values() if c not in df.columns]
     if missing:
         raise ValueError(f"FIELD_MAP refers to columns not in the data: {missing}")
