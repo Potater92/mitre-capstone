@@ -2,6 +2,7 @@
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 import yaml
 import operator
 ROOT = Path(__file__).resolve().parents[2]
@@ -232,6 +233,18 @@ def add_attack_technique(out):
     out.loc[is_attack, "attack_technique"] = out.loc[is_attack, "techniques"].replace("", "unmapped")
     return out
 
+def add_sigma_labels(out):
+    hit_cols = [c for c in out.columns if c.startswith("rule_hit_")]
+    out["sigma_triggered"] = out[hit_cols].any(axis=1).astype(int)
+
+    triggered, attack = out["sigma_triggered"] == 1, out["attack"] == 1
+    out["label"] = np.select(
+        [triggered & attack, triggered & ~attack, ~triggered & attack],
+        ["Attack", "False positive", "Missed attack"],
+        default="Benign",
+    )
+    return out
+
 if __name__ == "__main__":
     df = pd.read_csv(AUTH_FILE_PATH, header=None, names=AUTH_COLUMNS,
                      usecols=LOAD_COLUMNS, dtype={"time": "int64"})
@@ -246,7 +259,9 @@ if __name__ == "__main__":
     print(attacks["attack_technique"].value_counts())
     print(f"{(attacks['attack_technique'] != 'unmapped').sum()} of {len(attacks)} attack events matched a rule")
 
-    out.to_csv(OUTPUT_PATH, index=False)        # send to a new csv with attack tag column
+    out = add_sigma_labels(out)
+    print(out["label"].value_counts())
+    out.to_csv(OUTPUT_PATH, index=False)
     missing = [c for c in FIELD_MAP.values() if c not in df.columns]
     if missing:
         raise ValueError(f"FIELD_MAP refers to columns not in the data: {missing}")
