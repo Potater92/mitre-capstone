@@ -1,0 +1,16 @@
+{
+  "split": 2,
+  "total_scored_events": 1979679,
+  "known_red_team_events": 132,
+  "other_events": 1979547,
+  "saved_rows": 22660,
+  "thresholds": {
+    "0.01": 0.00015014004020486027,
+    "0.001": 0.03270659223198891,
+    "0.0001": 0.9995374083518982
+  },
+  "model_checkpoint_sha256": "9e34d008432ff9a675774931a421f59ee415857b04d17ba89d7894450275bab6",
+  "data_csv_sha256": "5e7381701bbcebe0fa3fc06c410538cf1ba7cb42e01797fdbb34367805d2c9f2",
+  "data_csv_rows": 3909864,
+  "notes": "Label 0 means no known red-team match. The LSTM score is not a calibrated probability."
+}
