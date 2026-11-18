@@ -2,8 +2,8 @@ import gzip, zlib, requests
 import pandas as pd
 from pathlib import Path
 URL = "https://lanl.ma.ic.ac.uk/data/cyber1/auth.txt.gz"
-OUT = r"auth_attack_final.csv"
-SAMPLE_PERCENT = 0.5            # keep 0.5% of non-red-team users
+OUT = r"auth_attack_final2.csv"
+SAMPLE_PERCENT = 5            # keep 0.5% of non-red-team users
 SPLITS = [(150000, 864000), (864000, 1123200), (1123200, 2225000)]  # half-open [a, b) to avoid window overlap
 # Training split goes up to day 9, validation is day 10-12, and test is day 13 onward
 MIN_T = 0
