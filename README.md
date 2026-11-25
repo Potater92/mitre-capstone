@@ -719,16 +719,20 @@ mitre-capstone/
 └── requirements.txt
 ```
 
+
 ## Additional Development Branches
 
 Milestone 3 development is spread across multiple branches while the team continues testing and integration.
 
--- **'qa-testing'** - Automated QA tests, GitHub Actions, and the Streamlit dashboard showing LSTM detection results and an interactive authentication behavior heatmap.
--- **'supervised'** - Aaron's supervised LSTM development, authentication behavior features, and saved trained model.
--- **'supervised-v4'** - Improved supervised LSTM (V4), including 11 behavioral features, separate authentication-field embeddings, model testing, data-leakage checks, and comparison scripts.
--- **'model-comparison'** - Streamlit dashboard comparing Aaron's model against V4, including detection performance, additional alerts, and model findings.
+- **`qa-testing`** — Automated QA tests, GitHub Actions, and the Streamlit dashboard showing LSTM detection results and an interactive authentication behavior heatmap.
 
-These branches contain ongoing development that has not yet been fully integrated into `main`.
+- **`supervised`** — Aaron's supervised LSTM development, authentication behavior features, and saved trained model.
+
+- **`supervised-v4`** — Improved supervised LSTM (V4), including 11 behavioral features, separate authentication-field embeddings, model testing, data-leakage checks, and comparison scripts.
+
+- **`model-comparison`** — Streamlit dashboard comparing Aaron's model against V4, including detection performance, additional alerts, and model findings.
+
+These branches contain ongoing development that has not yet been fully integrated into main.
 
 ## Known Limitations
 
